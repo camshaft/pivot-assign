@@ -11,64 +11,79 @@ var crypto = require("crypto")
   , debugW = require("debug")("pivot:assign:weight");
 
 /**
+ * Default user lookup
+ */
+var userLookup = function(user) {
+  return user.id;
+};
+
+/**
+ * Disables deprecation messages
+ */
+var silent = false;
+
+/**
  * Expose assign
  */
 module.exports = exports = assign;
 
-function assign(name, settings, user, done) {
+function assign(name, config, user, done) {
 
   // The feature has been enabled for everyone
-  if(settings === true) {
-    if(!exports.silent) console.info("*** Feature '"+name+"' has been turned on by default. Please remove it from your code. ***");
-    debug("enabled");
-    return done(null, true);
+  if(config.deprecated) {
+    if(!silent) console.info("*** Feature '"+name+"' has been deprecated. The default variant is now '"+config.default+"'. ***");
+    debug("Feature '"+name+"' deprecated");
+    return done(null, config.default);
   }
 
-  // TODO pass us the deserialized value so we can check to see if it's outdated
-
-  // The rest require that the settings be an array
-  if(type(settings) !== 'array') {
-    debug("disabled");
-    return done(null, false);
+  // The feature has been disabled
+  if(!config.enabled) {
+    debug("Feature '"+name+"' disabled");
+    return done(null, config.default);
   }
 
-  var id = exports.getUserId(user);
+  // TODO pass us the deserialized value so we can check to see if it's outdated or it has been overriden
 
-  // this user is a member of a group
-  inGroup(id, settings, function(err, variant) {
+  var id = userLookup(user)
+    , variants = config.variants;
+
+  // this user is in a list
+  inGroup(id, variants, function(err, variant) {
     debug("group", err, variant);
     if (err || variant) return done(err, variant);
 
     // user falls in a weighting group
-    inWeight(id, settings, function(err, variant) {
+    inWeight(id, variants, function(err, variant) {
       debug("weight", err, variant);
       if (err || variant) return done(err, variant);
 
       // We didn't get anthing; try looking for a default. Otherwise send a false.
-      variant = findDefault(settings);
+      variant = config.default || false;
       debug("default", variant);
       done(null, variant);
     });
   });
 };
 
-exports.getUserId = function(user) {
-  return user.id;
+exports.user = function(fn) {
+  userLookup = fn;
 };
 
-exports.silent = false;
+exports.silent = function(val) {
+  silent = typeof val === "undefined" ? true : val;
+};
 
-function inGroup(id, groups, done) {
-  var variant = find(groups, function(variant) {
-    return variant.group && ~variant.group.indexOf(id);
+function inGroup(id, variants, done) {
+  var variant = find(variants, function(variant) {
+    return variant.users && ~variant.users.indexOf(id);
   });
 
   done(null, (variant||{}).value);
 };
 
-function inWeight(id, weights, done) {
+function inWeight(id, variants, done) {
   // Sum up all of the weights
-  var total = sum(weights, 'weight');
+  var total = sum(variants, 'weight');
 
   debugW("total",total);
 
@@ -88,10 +103,6 @@ function inWeight(id, weights, done) {
 
   done(null, (variant||{}).value);
 };
-
-function findDefault (list) {
-  return (find(list, {"default": true}) || {}).value || false;
-}
 
 /**
  * Generate a hash for a user id
