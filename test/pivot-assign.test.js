@@ -1,8 +1,5 @@
 var should = require("should")
-  , assign = require("..");
-
-// Turn off alerting
-assign.silent();
+  , assign = require("..")({silent: true});
 
 describe("pivot-assign", function() {
 
