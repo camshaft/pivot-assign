@@ -14,11 +14,10 @@
   "license": "MIT",
   "readmeFilename": "README.md",
   "dependencies": {
-    "sum-component": "~0.1.1",
     "find": "https://github.com/component/find/archive/master.tar.gz",
     "require-component": "~0.1.0",
     "debug": "~0.7.2",
-    "type-component": "0.0.1"
+    "hashring": "~1.0.1"
   },
   "devDependencies": {
     "should": "~1.2.2",

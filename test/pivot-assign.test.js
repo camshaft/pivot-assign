@@ -5,7 +5,8 @@ describe("pivot-assign", function() {
 
   var config = {
     enabled: true,
-    'default': 'blue',
+    control: 'blue',
+    target: 'red',
     variants: [
       {value: "red", users: ["tim", "cameron"]},
       {value: "blue", users: ["nic"]},
@@ -13,8 +14,8 @@ describe("pivot-assign", function() {
     ]
   };
 
-  it("should return the default for a deprecated feature", function(done){
-    assign('true-test', {deprecated: true, 'default': true}, {}, function(err, variant) {
+  it("should return the target for a deprecated feature", function(done){
+    assign('true-test', {deprecated: true, target: true}, {}, function(err, variant) {
       if(err) return done(err);
       should.exist(variant);
       variant.should.be.true;
@@ -22,8 +23,8 @@ describe("pivot-assign", function() {
     });
   });
 
-  it("should return the default for a disabled feature", function(done){
-    assign('false-test', {enabled: false, 'default': false}, {}, function(err, variant) {
+  it("should return the control for a disabled feature", function(done){
+    assign('false-test', {enabled: false, control: false}, {}, function(err, variant) {
       if(err) return done(err);
       should.exist(variant);
       variant.should.be.false;
@@ -49,8 +50,8 @@ describe("pivot-assign", function() {
     });
   });
 
-  it("should assign a user to the default group if not present in others", function(done) {
-    assign('group-test', config, {id: "joe"}, function(err, variant) {
+  it("should assign a user to the control group if not present in others", function(done) {
+    assign('group-test', config, {}, function(err, variant) {
       if(err) return done(err);
       should.exist(variant);
       variant.should.eql("blue");
@@ -61,7 +62,8 @@ describe("pivot-assign", function() {
   it("should assign a user to a weight range", function(done){
     var config = {
       enabled: true,
-      'default': 'red',
+      control: 'red',
+      target: 'green',
       variants: [
         {value: "red", weight: 0},
         {value: "blue", weight: 1},
