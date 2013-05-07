@@ -7,6 +7,8 @@ var HashRing = require("hashring")
   , find = require("find")
   , debug = require("debug")("pivot:assign");
 
+function noop() {};
+
 /**
  * Expose assign
  */
@@ -16,7 +18,9 @@ module.exports = function(options) {
   var userLookup = options.userLookup || function(user) { return user ? user.id : undefined; }
     , silent = options.silent || false;
 
-  return function assign(name, config, user, done) {
+  return function assign(config, user, done) {
+    var name = config.name
+    done = done || noop;
 
     // Enable every feature
     if(options.enableAll) {
@@ -41,20 +45,20 @@ module.exports = function(options) {
     // TODO pass us the deserialized value so we can check to see if it's outdated or it has been overriden
 
     var id = userLookup(user)
-      , variants = config.variants;
+      , groups = config.groups;
 
     // this user is in a list
-    inGroup(id, variants, function(err, variant) {
+    inGroup(id, groups, function(err, variant) {
       debug("group", err, variant);
       if (err || variant) return done(err, variant);
 
       // user falls in a weighting group
-      inWeight(id, variants, function(err, variant) {
+      inWeight(id, groups, function(err, variant) {
         debug("weight", err, variant);
         if (err || variant) return done(err, variant);
 
-        // We didn't get anthing; try looking for a control. Otherwise return the first.
-        variant = config.control || variants[0];
+        // We didn't get anthing; return the control.
+        variant = config.control;
         debug("control", variant);
         done(null, variant);
       });
@@ -62,25 +66,25 @@ module.exports = function(options) {
   };
 };
 
-function inGroup(id, variants, done) {
-  var variant = find(variants, function(variant) {
-    return variant.users && ~variant.users.indexOf(id);
+function inGroup(id, groups, done) {
+  var group = find(groups, function(group) {
+    return group.users && ~group.users.indexOf(id);
   });
 
-  done(null, (variant||{}).value);
+  done(null, (group||{}).value);
 };
 
-function inWeight(id, variants, done) {
+function inWeight(id, groups, done) {
   // We can't do anything since we want this to be consistent
   if(!id) return done();
 
   // Setup the hashring config with the various weights
   var config = {};
-  variants.forEach(function(variant) {
+  groups.forEach(function(group) {
     // If it's been set to 0 disable it
-    if(variant.weight === 0) return;
-    
-    config[variant.value] = typeof variant.weight === "undefined" ? 1 : variant.weight;
+    if(group.weight === 0) return;
+
+    config[group.value] = typeof group.weight === "undefined" ? 1 : group.weight;
   });
 
   // TODO come up with a solution that will work with component
